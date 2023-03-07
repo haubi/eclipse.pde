@@ -18,8 +18,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.eclipse.core.resources.IFile;
@@ -124,7 +126,7 @@ public class ClasspathComputer {
 				if (library.getName().equals(".")) { //$NON-NLS-1$
 					addJARdPlugin(project, ClasspathUtilCore.getFilename(model), sourceAttachment, attrs, result);
 				} else {
-					addLibraryEntry(project, library, sourceAttachment, attrs, result);
+					addLibraryEntry(project, library, sourceAttachment, attrs, paths, result);
 				}
 			}
 		}
@@ -236,7 +238,8 @@ public class ClasspathComputer {
 		return (buildModel != null) ? buildModel.getBuild() : null;
 	}
 
-	private static void addLibraryEntry(IProject project, IPluginLibrary library, IPath sourceAttachment, IClasspathAttribute[] attrs, ArrayList<IClasspathEntry> result) throws JavaModelException {
+	private static void addLibraryEntry(IProject project, IPluginLibrary library, IPath sourceAttachment,
+			IClasspathAttribute[] attrs, Set<IPath> paths, List<IClasspathEntry> result) throws JavaModelException {
 		String name = ClasspathUtilCore.expandLibraryName(library.getName());
 		IResource jarFile = project.findMember(name);
 		if (jarFile == null) {
@@ -248,7 +251,7 @@ public class ClasspathComputer {
 			IClasspathEntry oldEntry = root.getRawClasspathEntry();
 			// If we have the same binary root but new or different source, we should recreate the entry
 			if ((sourceAttachment == null && oldEntry.getSourceAttachmentPath() != null) || (sourceAttachment != null && sourceAttachment.equals(oldEntry.getSourceAttachmentPath()))) {
-				if (!result.contains(oldEntry)) {
+				if (paths.add(oldEntry.getPath())) {
 					result.add(oldEntry);
 					return;
 				}
@@ -256,7 +259,7 @@ public class ClasspathComputer {
 		}
 
 		IClasspathEntry entry = createClasspathEntry(project, jarFile, name, sourceAttachment, attrs, library.isExported());
-		if (!result.contains(entry)) {
+		if (paths.add(entry.getPath())) {
 			result.add(entry);
 		}
 	}
