@@ -19,6 +19,7 @@ import org.eclipse.pde.core.tests.internal.core.builders.BundleErrorReporterTest
 import org.eclipse.pde.core.tests.internal.util.PDESchemaHelperTest;
 import org.eclipse.pde.ui.tests.build.properties.AllValidatorTests;
 import org.eclipse.pde.ui.tests.classpathresolver.ClasspathResolverTest;
+import org.eclipse.pde.ui.tests.classpathupdater.ClasspathUpdaterTest;
 import org.eclipse.pde.ui.tests.launcher.AllLauncherTests;
 import org.eclipse.pde.ui.tests.model.bundle.AllBundleModelTests;
 import org.eclipse.pde.ui.tests.model.xml.AllXMLModelTests;
@@ -46,7 +47,8 @@ import org.junit.runners.Suite.SuiteClasses;
 	AllPDERuntimeTests.class,
 	// ExportBundleTests.class,
 	AllLauncherTests.class, AllLogViewTests.class, ProjectCreationTests.class, BundleRootTests.class,
-	PluginRegistryTestsMinimal.class, ClasspathResolverTest.class, PDESchemaHelperTest.class,
+	PluginRegistryTestsMinimal.class, ClasspathResolverTest.class, ClasspathUpdaterTest.class,
+		PDESchemaHelperTest.class,
 	DynamicPluginProjectReferencesTest.class,
 	// ClasspathContributorTest.class
 	ClasspathResolutionTest.class,
