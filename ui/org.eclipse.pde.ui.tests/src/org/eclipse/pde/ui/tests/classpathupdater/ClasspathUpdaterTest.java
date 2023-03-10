@@ -4,6 +4,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.jdt.core.*;
@@ -37,6 +38,9 @@ public class ClasspathUpdaterTest {
 			assertTrue("Update Classpath Job failed", runUpdateClasspathJob().isOK());
 			checkClasspathAttribute("JavaSE-17", IClasspathAttribute.MODULE, "true", Boolean::valueOf);
 			checkClasspathAttribute("library.jar", IClasspathAttribute.TEST, "true", Boolean::valueOf);
+			checkClasspathProperty("library.jar", "exported=true", (e) -> e.isExported());
+			checkClasspathAttribute("A.jar", IClasspathAttribute.TEST, null, Boolean::valueOf);
+			checkClasspathProperty("A.jar", "exported=false", (e) -> !e.isExported());
 		} finally {
 			javaPrj.setRawClasspath(originalClasspath, null);
 		}
@@ -52,6 +56,9 @@ public class ClasspathUpdaterTest {
 			assertTrue("Update Classpath Job failed", runUpdateClasspathJob().isOK());
 			checkClasspathAttribute("JavaSE-17", IClasspathAttribute.MODULE, null, Boolean::valueOf);
 			checkClasspathAttribute("library.jar", IClasspathAttribute.TEST, null, Boolean::valueOf);
+			checkClasspathProperty("library.jar", "exported=false", (e) -> !e.isExported());
+			checkClasspathAttribute("A.jar", IClasspathAttribute.TEST, null, Boolean::valueOf);
+			checkClasspathProperty("A.jar", "exported=false", (e) -> !e.isExported());
 		} finally {
 			javaPrj.setRawClasspath(originalClasspath, null);
 		}
@@ -88,6 +95,14 @@ public class ClasspathUpdaterTest {
 			}
 		}
 		return null;
+	}
+
+	private void checkClasspathProperty(String entryName, String expectedValue, Predicate<IClasspathEntry> checker)
+			throws JavaModelException {
+		String title = "Classpath entry for '" + entryName + "'";
+		IClasspathEntry entry = findClasspathEntry(entryName);
+		assertTrue(title + " is missing", entry != null);
+		assertTrue(title + " has not set '" + expectedValue + "' any more", checker.test(entry));
 	}
 
 	private IClasspathEntry findClasspathEntry(String entryName) throws JavaModelException {
