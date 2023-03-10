@@ -258,7 +258,7 @@ public class ClasspathComputer {
 			}
 		}
 
-		IClasspathEntry entry = createClasspathEntry(project, jarFile, name, sourceAttachment, attrs, library.isExported());
+		IClasspathEntry entry = createClasspathEntry(project, jarFile, name, sourceAttachment, attrs, false);
 		if (paths.add(entry.getPath())) {
 			result.add(entry);
 		}
