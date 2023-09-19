@@ -89,6 +89,12 @@ public class ClasspathComputer {
 		addSourceAndLibraries(sourceLibraryMap != null ? sourceLibraryMap : Collections.emptyMap(), context);
 
 		IClasspathEntry[] entries = collectInOriginalOrder(originalClasspath, context.reloaded);
+
+		if (context.isTestPlugin) {
+			// don't clear existing test attributes, but set if necessary
+			entries = Stream.of(entries).map(e -> updateTestAttribute(true, e)).toArray(IClasspathEntry[]::new);
+		}
+
 		IJavaModelStatus validation = JavaConventions.validateClasspath(javaProject, entries, javaProject.getOutputLocation());
 		if (!validation.isOK()) {
 			PDECore.logErrorMessage(validation.getMessage());
