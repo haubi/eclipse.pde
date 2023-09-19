@@ -20,6 +20,8 @@ import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.pde.core.plugin.IPluginModelBase;
 import org.eclipse.pde.core.plugin.PluginRegistry;
 import org.eclipse.pde.internal.core.ClasspathComputer;
+import org.eclipse.pde.internal.core.ICoreConstants;
+import org.eclipse.pde.internal.core.PDECore;
 import org.eclipse.pde.internal.ui.wizards.tools.UpdateClasspathJob;
 import org.eclipse.pde.ui.tests.util.ProjectUtils;
 import org.junit.After;
@@ -32,6 +34,8 @@ public class ClasspathUpdaterTest {
 	private static IJavaProject jProject;
 
 	private static IClasspathEntry[] originalClasspath;
+	private static String originalTestPluginPattern;
+	private static Boolean expectTestPlugin;
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -39,11 +43,26 @@ public class ClasspathUpdaterTest {
 		assertTrue("Project was not created", project.exists());
 		jProject = JavaCore.create(project);
 		originalClasspath = jProject.getRawClasspath();
+		originalTestPluginPattern = PDECore.getDefault().getPreferencesManager()
+				.getString(ICoreConstants.TEST_PLUGIN_PATTERN);
+		expectTestPlugin = null;
 	}
 
 	@After
 	public void restoreOriginalClasspath() throws Exception {
 		jProject.setRawClasspath(originalClasspath, null);
+	}
+
+	@After
+	public void restoreOriginalTestPluginPattern() {
+		PDECore.getDefault().getPreferencesManager().setValue(ICoreConstants.TEST_PLUGIN_PATTERN,
+				originalTestPluginPattern);
+		expectTestPlugin = null;
+	}
+
+	private void setTestPluginPattern() {
+		PDECore.getDefault().getPreferencesManager().setValue(ICoreConstants.TEST_PLUGIN_PATTERN, project.getName());
+		expectTestPlugin = Boolean.TRUE;
 	}
 
 	@Test
@@ -53,7 +72,7 @@ public class ClasspathUpdaterTest {
 		assertClasspathAttribute("library.jar", IClasspathAttribute.TEST, true, Boolean::valueOf);
 		assertClasspathProperty("library.jar", "exported=true", e -> e.isExported());
 		assertClasspathProperty("library.jar", "no source", e -> e.getSourceAttachmentPath() == null);
-		assertClasspathAttribute("A.jar", IClasspathAttribute.TEST, null, Boolean::valueOf);
+		assertClasspathAttribute("A.jar", IClasspathAttribute.TEST, expectTestPlugin, Boolean::valueOf);
 		assertClasspathProperty("A.jar", "exported=false", e -> !e.isExported());
 		assertClasspathProperty("A.jar", "default source",
 				e -> "Asrc.zip".equals(nullOr(e.getSourceAttachmentPath(), IPath::lastSegment)));
@@ -64,19 +83,31 @@ public class ClasspathUpdaterTest {
 	}
 
 	@Test
+	public void testUpdateClasspath_PreserveAttributes_WithTestPluginName() throws Exception {
+		setTestPluginPattern();
+		testUpdateClasspath_PreserveAttributes();
+	}
+
+	@Test
 	public void testUpdateClasspath_CreateFromScratch() throws Exception {
 		jProject.setRawClasspath(new IClasspathEntry[0], null);
 
 		runUpdateClasspathJob();
 		assertClasspathAttribute("JavaSE-17", IClasspathAttribute.MODULE, null, Boolean::valueOf);
-		assertClasspathAttribute("library.jar", IClasspathAttribute.TEST, null, Boolean::valueOf);
+		assertClasspathAttribute("library.jar", IClasspathAttribute.TEST, expectTestPlugin, Boolean::valueOf);
 		assertClasspathProperty("library.jar", "exported=true", e -> e.isExported());
 		assertClasspathProperty("library.jar", "no source", e -> e.getSourceAttachmentPath() == null);
-		assertClasspathAttribute("A.jar", IClasspathAttribute.TEST, null, Boolean::valueOf);
+		assertClasspathAttribute("A.jar", IClasspathAttribute.TEST, expectTestPlugin, Boolean::valueOf);
 		assertClasspathProperty("A.jar", "exported=true", e -> e.isExported());
 		assertClasspathProperty("A.jar", "default source",
 				e -> "Asrc.zip".equals(nullOr(e.getSourceAttachmentPath(), IPath::lastSegment)));
 		assertClasspathOrder("JavaSE-17", "org.eclipse.pde.core.requiredPlugins", "library.jar", "A.jar");
+	}
+
+	@Test
+	public void testUpdateClasspath_CreateFromScatch_WithTestPluginName() throws Exception {
+		setTestPluginPattern();
+		testUpdateClasspath_CreateFromScratch();
 	}
 
 	@Test
@@ -95,7 +126,7 @@ public class ClasspathUpdaterTest {
 		assertClasspathProperty("library.jar", "exported=true", e -> e.isExported());
 		assertClasspathProperty("library.jar", "overridden source",
 				e -> "A.jar".equals(nullOr(e.getSourceAttachmentPath(), IPath::lastSegment)));
-		assertClasspathAttribute("A.jar", IClasspathAttribute.TEST, null, Boolean::valueOf);
+		assertClasspathAttribute("A.jar", IClasspathAttribute.TEST, expectTestPlugin, Boolean::valueOf);
 		assertClasspathProperty("A.jar", "exported=false", e -> !e.isExported());
 		assertClasspathProperty("A.jar", "overridden source",
 				e -> "library.jar".equals(nullOr(e.getSourceAttachmentPath(), IPath::lastSegment)));
@@ -103,6 +134,12 @@ public class ClasspathUpdaterTest {
 		assertClasspathAttribute("src", IClasspathAttribute.IGNORE_OPTIONAL_PROBLEMS, true, Boolean::valueOf);
 		assertClasspathOrder("A.jar", "src", "org.eclipse.pde.core.requiredPlugins", "JavaSE-17", "SOMEVAR",
 				"library.jar");
+	}
+
+	@Test
+	public void testClasspathComputer_ChangeSourceAttachment_WithTestPluginName() throws Exception {
+		setTestPluginPattern();
+		testClasspathComputer_ChangeSourceAttachment();
 	}
 
 	private void runUpdateClasspathJob() throws InterruptedException {
